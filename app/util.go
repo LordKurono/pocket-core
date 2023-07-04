@@ -162,10 +162,20 @@ func UnsafeDeleteData(config sdk.Config, lastDeleteHeight int64) {
 	fmt.Println("Starting unsafe delete operation from blocks 0 to latestHeight")
 	// get multistore
 	ms := a.Store().(*rootmulti.Store)
+
+	vToDelete := make([]int64, 0, 100)
+
 	for i := int64(0); i < lastDeleteHeight; i++ {
 		fmt.Println("Attempting to delete version: ", i)
-		ms.DeleteVersions(i)
+		vToDelete = append(vToDelete, i)
+		if i%100 == 0 {
+			ms.DeleteVersions(vToDelete...)
+			vToDelete = make([]int64, 0, 100)
+		}
 	}
+	//one last time
+	ms.DeleteVersions(vToDelete...)
+
 	fmt.Println("Compacting AppDB, this could take a while...")
 	err = db.(*db2.GoLevelDB).Compact(util.Range{})
 	if err != nil {
